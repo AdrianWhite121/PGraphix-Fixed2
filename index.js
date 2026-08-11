@@ -30,7 +30,7 @@ client.once("ready", async () => {
 
   client.user.setPresence({
     status: "online",
-    activities: [{ name: "JGraphix Studio", type: ActivityType.Watching }]
+    activities: [{ name: "PGraphix Studio", type: ActivityType.Watching }]
   });
 
   await updateQueueList(client);
