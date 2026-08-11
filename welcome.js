@@ -19,10 +19,10 @@ export function registerWelcome(client) {
       const logo = new AttachmentBuilder(paths.logo, { name: "logo.png" });
       const embed = new EmbedBuilder()
         .setColor("#2B2D31")
-        .setTitle("Welcome to JGraphix Studio")
-        .setDescription(`Welcome ${member}.\n\nThank you for joining JGraphix Studio.\n\nPlease review the following channels to familiarize yourself with our services and community guidelines.\n\n**Rules & Guidelines**\n<#1420615530091515955>\n\n**Work In Progress**\n<#1473208743591415841>\n\n**TikTok Updates**\n<#1478873848450519213>\n\n**General Discussion**\n<#1473184613219176488>\n\nIf you have any questions regarding commissions or services, please contact a member of our team.`)
+        .setTitle("Welcome to PGraphix Studio")
+        .setDescription(`Welcome ${member}.\n\nThank you for joining PGraphix Studio.\n\nPlease review the following channels to familiarize yourself with our services and community guidelines.\n\n**Rules & Guidelines**\n<#1420615530091515955>\n\n**Work In Progress**\n<#1473208743591415841>\n\n**TikTok Updates**\n<#1478873848450519213>\n\n**General Discussion**\n<#1473184613219176488>\n\nIf you have any questions regarding commissions or services, please contact a member of our team.`)
         .setThumbnail("attachment://logo.png")
-        .setFooter({ text: "JGraphix Studio" })
+        .setFooter({ text: "PGraphix Studio" })
         .setTimestamp();
 
       await welcomeChannel.send({ content: `${member}`, embeds: [embed], files: [logo] });
