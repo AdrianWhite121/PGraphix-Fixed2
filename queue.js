@@ -75,7 +75,7 @@ export async function updateQueueList(client) {
     const embed = new EmbedBuilder()
       .setTitle("📋 Commission Queue")
       .setDescription(`${descriptionHeader}\n\n**Total Active Tickets:** ${total}\n\n${sections.join("\n\n")}`)
-      .setColor(0x5865F2)
+      .setColor(0x00008B)
       .setTimestamp();
 
     const queueChannel = await guild.channels.fetch(ids.queueChannel);
