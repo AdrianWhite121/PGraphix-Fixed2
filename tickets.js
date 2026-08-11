@@ -380,10 +380,10 @@ export async function addUserToTicket(interaction) {
 
 export async function postTicketMenu(interaction) {
   const embed = new EmbedBuilder()
-    .setColor(0x2B2D31)
+    .setColor(0x00008B )
     .setTitle("Commission Tickets")
     .setDescription("To create a ticket use the menu below.")
-    .setFooter({ text: "JG Studios" });
+    .setFooter({ text: "PG Studios" });
 
   await interaction.channel.send({ embeds: [embed], components: [ticketMenuRow()] });
   await interaction.reply({ content: "Ticket menu posted.", ephemeral: true });
