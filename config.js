@@ -4,7 +4,7 @@ export const TOKEN = process.env.DISCORD_TOKEN || process.env.TOKEN;
 
 export const ids = {
   guild: process.env.GUILD_ID || "",
-  welcomeChannel: process.env.WELCOME_CHANNEL_ID || "",
+  welcomeChannel: process.env.WELCOME_CHANNEL_ID || "1511530891728392272",
   queueChannel: process.env.QUEUE_CHANNEL_ID || "",
   modLogChannel: process.env.MODLOG_CHANNEL_ID || "",
   serverLogChannel: process.env.SERVER_LOG_CHANNEL_ID || "1473204678543278170",
