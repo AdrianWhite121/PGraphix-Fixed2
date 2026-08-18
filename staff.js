@@ -5,7 +5,7 @@ import { dataPath, readJson, writeJson } from "./jsonStore.js";
 const WARN_FILE = dataPath("warnings.json");
 const NOTE_FILE = dataPath("notes.json");
 
-export const staffCommandNames = ["ban", "kick", "warn", "warnings", "timeout", "untimeout", "note", "notes"];
+export const staffCommandNames = ["ban", "kick", "warn", "warnings", "timeout", "untimeout", "purge", "addrole", "removerole", "unban", "note", "notes"];
 
 export function parseDuration(input) {
   if (!input) return null;
@@ -33,8 +33,85 @@ export async function handleStaffCommand(interaction) {
   const targetMember = targetUser ? await interaction.guild.members.fetch(targetUser.id).catch(() => null) : null;
   const reason = interaction.options.getString("reason") || "No reason provided";
 
-  if (["kick", "timeout", "untimeout"].includes(command) && !targetMember) {
+  if (["kick", "timeout", "untimeout", "addrole", "removerole"].includes(command) && !targetMember) {
     return interaction.reply({ content: "That member could not be found in the server.", ephemeral: true });
+  }
+
+  if (command === "purge") {
+    const amount = interaction.options.getInteger("amount", true);
+    if (!interaction.channel?.isTextBased() || typeof interaction.channel.bulkDelete !== "function") {
+      return interaction.reply({ content: "This command can only be used in a server text channel.", ephemeral: true });
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    const deleted = await interaction.channel.bulkDelete(amount, true);
+    await interaction.editReply({ content: `Deleted ${deleted.size} message${deleted.size === 1 ? "" : "s"}. Messages older than 14 days cannot be bulk deleted.` });
+
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle("Staff Action: purge")
+      .addFields(
+        { name: "Channel", value: `${interaction.channel}` },
+        { name: "Deleted", value: String(deleted.size) },
+        { name: "Staff", value: `${interaction.user}` }
+      )
+      .setTimestamp();
+    await sendModLog(interaction.guild, embed);
+    return;
+  }
+
+  if (command === "addrole" || command === "removerole") {
+    const role = interaction.options.getRole("role", true);
+    if (role.id === interaction.guild.id) {
+      return interaction.reply({ content: "The @everyone role cannot be added or removed.", ephemeral: true });
+    }
+
+    if (command === "addrole") {
+      await targetMember.roles.add(role, `Added by ${interaction.user.tag}`);
+      await interaction.reply({ content: `Added ${role} to ${targetUser.tag}.`, ephemeral: true });
+    } else {
+      await targetMember.roles.remove(role, `Removed by ${interaction.user.tag}`);
+      await interaction.reply({ content: `Removed ${role} from ${targetUser.tag}.`, ephemeral: true });
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle(`Staff Action: ${command}`)
+      .addFields(
+        { name: "User", value: `${targetUser} (${targetUser.id})` },
+        { name: "Role", value: `${role} (${role.id})` },
+        { name: "Staff", value: `${interaction.user}` }
+      )
+      .setTimestamp();
+    await sendModLog(interaction.guild, embed);
+    return;
+  }
+
+  if (command === "unban") {
+    const userId = interaction.options.getString("user_id", true).trim();
+    if (!/^\d{17,20}$/.test(userId)) {
+      return interaction.reply({ content: "Please enter a valid Discord user ID.", ephemeral: true });
+    }
+
+    const ban = await interaction.guild.bans.fetch(userId).catch(() => null);
+    if (!ban) {
+      return interaction.reply({ content: "That user is not currently banned from this server.", ephemeral: true });
+    }
+
+    await interaction.guild.members.unban(userId, reason);
+    await interaction.reply({ content: `Unbanned ${ban.user.tag} (${ban.user.id}).`, ephemeral: true });
+
+    const embed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle("Staff Action: unban")
+      .addFields(
+        { name: "User", value: `${ban.user.tag} (${ban.user.id})` },
+        { name: "Staff", value: `${interaction.user}` },
+        { name: "Reason", value: reason }
+      )
+      .setTimestamp();
+    await sendModLog(interaction.guild, embed);
+    return;
   }
 
   if (command === "ban") {

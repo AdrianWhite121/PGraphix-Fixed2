@@ -2,6 +2,10 @@ import { ActivityType, ChannelType, EmbedBuilder, PermissionsBitField } from "di
 import { ids, ticketTypes } from "./config.js";
 
 const ticketPatterns = Object.fromEntries(Object.keys(ticketTypes).map(type => [type, new RegExp(`^${type}-(\\d+)(?:-.+)?$`, "i")]));
+const ticketCategoryIds = new Set(Object.values(ticketTypes).map(type => type.categoryId));
+let updateInFlight = null;
+let queuedUpdate = false;
+let debounceTimer = null;
 
 function ordinal(n) {
   const suffixes = ["th", "st", "nd", "rd"];
@@ -14,7 +18,22 @@ function getTicketNumber(channelName, type) {
   return match ? parseInt(match[1], 10) : 999999;
 }
 
+function getOwnerIdFromTopic(channel) {
+  return channel.topic?.match(/opened by .*? \((\d+)\)/i)?.[1] || null;
+}
+
 async function getTicketOwner(channel, guild, client) {
+  const topicOwnerId = getOwnerIdFromTopic(channel);
+  if (topicOwnerId) {
+    const cached = guild.members.cache.get(topicOwnerId);
+    if (cached && !cached.user.bot) return cached.user.username;
+
+    try {
+      const member = await guild.members.fetch(topicOwnerId);
+      if (!member.user.bot) return member.user.username;
+    } catch {}
+  }
+
   const overwrites = channel.permissionOverwrites.cache.filter(overwrite =>
     overwrite.type === 1 &&
     overwrite.allow.has(PermissionsBitField.Flags.ViewChannel) &&
@@ -22,6 +41,9 @@ async function getTicketOwner(channel, guild, client) {
   );
 
   for (const overwrite of overwrites.values()) {
+    const cached = guild.members.cache.get(overwrite.id);
+    if (cached && !cached.user.bot && !cached.roles.cache.has(ids.staffRole)) return cached.user.username;
+
     try {
       const member = await guild.members.fetch(overwrite.id);
       if (!member.user.bot && !member.roles.cache.has(ids.staffRole)) return member.user.username;
@@ -38,21 +60,18 @@ async function buildQueueSection(type, channels, guild, client) {
   if (!channels.length) return `__**${label} Queue**__\nNo active tickets.`;
 
   const sortedChannels = channels.sort((a, b) => getTicketNumber(a.name, type) - getTicketNumber(b.name, type));
-  const lines = [];
-  for (let i = 0; i < sortedChannels.length; i++) {
-    const owner = await getTicketOwner(sortedChannels[i], guild, client);
-    lines.push(`**${ordinal(i + 1)}** **${owner}** — ${sortedChannels[i].name}`);
-  }
+  const owners = await Promise.all(sortedChannels.map(channel => getTicketOwner(channel, guild, client)));
+  const lines = sortedChannels.map((channel, i) => `**${ordinal(i + 1)}** **${owners[i]}** — ${channel.name}`);
 
   return `__**${label} Queue**__\n${lines.join("\n")}`;
 }
 
-export async function updateQueueList(client) {
-  if (!ids.guild || !ids.queueChannel) return;
+async function performQueueUpdate(client) {
+  if (!ids.guild || !ids.queueChannel || !client.user) return;
 
   try {
-    const guild = await client.guilds.fetch(ids.guild);
-    const channels = await guild.channels.fetch();
+    const guild = client.guilds.cache.get(ids.guild) || await client.guilds.fetch(ids.guild);
+    const channels = guild.channels.cache.size ? guild.channels.cache : await guild.channels.fetch();
     const grouped = Object.fromEntries(Object.keys(ticketTypes).map(type => [type, []]));
 
     channels.forEach(channel => {
@@ -69,8 +88,7 @@ export async function updateQueueList(client) {
       .map(([type, config]) => `**${config.emoji} ${config.queueLabel}:** ${grouped[type].length}`)
       .join("\n");
 
-    const sections = [];
-    for (const type of Object.keys(ticketTypes)) sections.push(await buildQueueSection(type, grouped[type], guild, client));
+    const sections = await Promise.all(Object.keys(ticketTypes).map(type => buildQueueSection(type, grouped[type], guild, client)));
 
     const embed = new EmbedBuilder()
       .setTitle("📋 Commission Queue")
@@ -78,7 +96,7 @@ export async function updateQueueList(client) {
       .setColor(0x00008B)
       .setTimestamp();
 
-    const queueChannel = await guild.channels.fetch(ids.queueChannel);
+    const queueChannel = guild.channels.cache.get(ids.queueChannel) || await guild.channels.fetch(ids.queueChannel);
     if (!queueChannel?.isTextBased()) return;
 
     const messages = await queueChannel.messages.fetch({ limit: 20 });
@@ -86,12 +104,50 @@ export async function updateQueueList(client) {
     if (existingMessage) await existingMessage.edit({ embeds: [embed] });
     else await queueChannel.send({ embeds: [embed] });
   } catch (error) {
-    console.error("Error updating queue:", error.message);
+    console.error("Error updating queue:", error);
   }
 }
 
+export async function updateQueueList(client) {
+  if (updateInFlight) {
+    queuedUpdate = true;
+    return updateInFlight;
+  }
+
+  updateInFlight = performQueueUpdate(client);
+  try {
+    await updateInFlight;
+  } finally {
+    updateInFlight = null;
+  }
+
+  if (queuedUpdate) {
+    queuedUpdate = false;
+    return updateQueueList(client);
+  }
+}
+
+function scheduleQueueUpdate(client, delayMs = 1200) {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    updateQueueList(client).catch(error => console.error("Queued queue update failed:", error));
+  }, delayMs);
+  debounceTimer.unref?.();
+}
+
+function touchesTicketCategory(channel) {
+  return Boolean(channel && (ticketCategoryIds.has(channel.parentId) || ticketCategoryIds.has(channel.id)));
+}
+
 export function registerQueueEvents(client) {
-  client.on("channelCreate", () => updateQueueList(client));
-  client.on("channelDelete", () => updateQueueList(client));
-  client.on("channelUpdate", () => updateQueueList(client));
+  client.on("channelCreate", channel => {
+    if (touchesTicketCategory(channel)) scheduleQueueUpdate(client);
+  });
+  client.on("channelDelete", channel => {
+    if (touchesTicketCategory(channel)) scheduleQueueUpdate(client);
+  });
+  client.on("channelUpdate", (oldChannel, newChannel) => {
+    if (touchesTicketCategory(oldChannel) || touchesTicketCategory(newChannel)) scheduleQueueUpdate(client);
+  });
 }

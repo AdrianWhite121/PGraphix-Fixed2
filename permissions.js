@@ -5,6 +5,7 @@ export function hasStaffRole(member) {
 }
 
 export async function replySafe(interaction, options) {
-  if (interaction.deferred || interaction.replied) return interaction.followUp(options);
+  if (interaction.deferred) return interaction.editReply(options);
+  if (interaction.replied) return interaction.followUp(options);
   return interaction.reply(options);
 }

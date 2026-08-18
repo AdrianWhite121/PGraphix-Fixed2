@@ -6,7 +6,8 @@ import {
   ChannelType,
   EmbedBuilder,
   PermissionFlagsBits,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
+  MessageFlags
 } from "discord.js";
 import { ids, ticketTypes } from "./config.js";
 import { hasStaffRole, replySafe } from "./permissions.js";
@@ -74,6 +75,8 @@ export async function claimTicket(interaction) {
     });
   }
 
+  await interaction.deferReply();
+
   const baseTopic = (channel.topic || "Ticket").replace(CLAIM_MARKER_REGEX, "").trim();
   const artistName = sanitizeChannelPart(interaction.user.username);
   const unclaimedName = removeClaimSuffix(channel.name);
@@ -107,6 +110,8 @@ export async function unclaimTicket(interaction) {
   if (!claimedUserId) {
     return replySafe(interaction, { content: "This ticket is not currently claimed.", ephemeral: true });
   }
+
+  await interaction.deferReply();
 
   const baseTopic = (channel.topic || "Ticket").replace(CLAIM_MARKER_REGEX, "").trim();
   await channel.setTopic(baseTopic || null, `Ticket unclaimed by ${interaction.user.tag}`);
@@ -212,6 +217,8 @@ export async function changeTicketStatus(interaction, status) {
     return replySafe(interaction, { content: `This ticket is already marked ${status === "done" ? "complete" : status}.`, ephemeral: true });
   }
 
+  await interaction.deferReply();
+
   const suffix = getClaimSuffix(channel.name);
   const destination = await getNextNumberedChannel(
     interaction.guild,
@@ -256,6 +263,8 @@ export async function renameChannel(interaction) {
   if (channel.name === newName) {
     return replySafe(interaction, { content: `This channel is already named **${newName}**.`, ephemeral: true });
   }
+
+  await interaction.deferReply();
 
   const oldName = channel.name;
   await channel.setName(newName, `Channel renamed by ${interaction.user.tag}`);
@@ -393,6 +402,8 @@ export async function createTicket(interaction, client) {
   const type = interaction.values[0];
   const config = ticketTypes[type];
   if (!config) return replySafe(interaction, { content: "Unknown ticket type.", ephemeral: true });
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const guild = interaction.guild;
   const category = await guild.channels.fetch(config.categoryId).catch(() => null);

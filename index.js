@@ -23,6 +23,21 @@ registerQueueEvents(client);
 registerInteractionHandler(client);
 registerServerLogs(client);
 
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`Received ${signal}; shutting down Discord client cleanly.`);
+  try {
+    client.destroy();
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));
+
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 

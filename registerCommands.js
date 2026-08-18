@@ -22,6 +22,10 @@ export const commands = [
   { name: "warnings", description: "View warnings for a member.", options: [{ name: "user", description: "User", type: 6, required: true }] },
   { name: "timeout", description: "Timeout a member. Example duration: 10m, 2h, 1d", options: [{ name: "user", description: "User to timeout", type: 6, required: true }, { name: "duration", description: "Duration", type: 3, required: true }, { name: "reason", description: "Reason", type: 3, required: false }] },
   { name: "untimeout", description: "Remove a member timeout.", options: [{ name: "user", description: "User", type: 6, required: true }, { name: "reason", description: "Reason", type: 3, required: false }] },
+  { name: "purge", description: "Delete recent messages from the current channel.", options: [{ name: "amount", description: "Number of messages to delete (1-100)", type: 4, required: true, min_value: 1, max_value: 100 }] },
+  { name: "addrole", description: "Add a role to a member.", options: [{ name: "user", description: "Member to give the role to", type: 6, required: true }, { name: "role", description: "Role to add", type: 8, required: true }] },
+  { name: "removerole", description: "Remove a role from a member.", options: [{ name: "user", description: "Member to remove the role from", type: 6, required: true }, { name: "role", description: "Role to remove", type: 8, required: true }] },
+  { name: "unban", description: "Unban a user by Discord user ID.", options: [{ name: "user_id", description: "Discord user ID of the banned user", type: 3, required: true }, { name: "reason", description: "Reason", type: 3, required: false }] },
   { name: "note", description: "Add a staff note to a member.", options: [{ name: "user", description: "User", type: 6, required: true }, { name: "note", description: "Note", type: 3, required: true }] },
   { name: "notes", description: "View staff notes for a member.", options: [{ name: "user", description: "User", type: 6, required: true }] }
 ];

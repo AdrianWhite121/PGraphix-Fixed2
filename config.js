@@ -60,5 +60,12 @@ export const ticketTypes = {
     emoji: "❓",
     categoryId: "1493798324040372264",
     accessRoleIds: ["1473175549445804095"]
+  },
+  vehicle: {
+    label: "Vehicle Development Ticket",
+    queueLabel: "Vehicle Development",
+    emoji: "🚗",
+    categoryId: "1539011174379819088",
+    accessRoleIds: ["1508682828215357520", "1473175549445804095"]
   }
 };
