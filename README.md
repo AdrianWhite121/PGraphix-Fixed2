@@ -1,4 +1,4 @@
-# JG Studios Discord Bot — Modular Version
+# JG/PG Studios Discord Bot — Modular Version
 
 This version keeps every required deployment file in one project folder so GitHub uploads cannot skip nested folders:
 
