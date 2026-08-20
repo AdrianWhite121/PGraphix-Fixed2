@@ -24,11 +24,12 @@ permissions.js
 - Auto role on join
   - Default role: `1473103699722375168`
 - Commission queue tracking
-- Five ticket types:
+- Six ticket types:
   - Livery
   - EUP
   - Siren
   - Media
+  - Vehicle
   - Support
 - Ticket close button
 - Embed creator command
