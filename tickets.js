@@ -444,6 +444,21 @@ async function openTicket(interaction, client, type, answers = []) {
   const guild = interaction.guild;
   const category = await guild.channels.fetch(config.categoryId).catch(() => null);
   if (!category) return replySafe(interaction, { content: "That ticket category could not be found.", ephemeral: true });
+  const pingRole = await guild.roles.fetch(ids.ticketPingRole).catch(() => null);
+  if (!pingRole) {
+    return replySafe(interaction, {
+      content: `The ticket ping role (${ids.ticketPingRole}) could not be found in this server. Please check TICKET_PING_ROLE_ID before opening a ticket.`,
+      ephemeral: true
+    });
+  }
+  for (const roleId of config.accessRoleIds) {
+    if (!await guild.roles.fetch(roleId).catch(() => null)) {
+      return replySafe(interaction, {
+        content: `A staff access role (${roleId}) for ${config.label} could not be found in this server. Please update the ticket configuration.`,
+        ephemeral: true
+      });
+    }
+  }
 
   const overwrites = [
     { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
@@ -451,7 +466,7 @@ async function openTicket(interaction, client, type, answers = []) {
     { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MentionEveryone] }
   ];
 
-  for (const roleId of new Set([...config.accessRoleIds, ids.ticketPingRole])) {
+  for (const roleId of new Set([...config.accessRoleIds, pingRole.id])) {
     overwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.EmbedLinks] });
   }
 
@@ -478,7 +493,16 @@ async function openTicket(interaction, client, type, answers = []) {
     embeds: [embed],
     components: [closeTicketRow()]
   });
-  await openingMessage.pin();
-  await replySafe(interaction, { content: `Created your ticket: ${channel}`, ephemeral: true });
+  let pinError = null;
+  try {
+    await openingMessage.pin();
+  } catch (error) {
+    pinError = error;
+    console.error(`Could not pin opening message in ${channel.id}:`, error);
+  }
+  await replySafe(interaction, {
+    content: `Created your ticket: ${channel}${pinError ? ". I could not pin the opening message; please give the bot Manage Messages in this channel." : ""}`,
+    ephemeral: true
+  });
   await updateQueueList(client);
 }

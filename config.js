@@ -9,7 +9,7 @@ export const ids = {
   modLogChannel: process.env.MODLOG_CHANNEL_ID || "",
   serverLogChannel: process.env.SERVER_LOG_CHANNEL_ID || "1473204678543278170",
   staffRole: process.env.STAFF_ROLE_ID || "1418062158704414801",
-  ticketPingRole: process.env.TICKET_PING_ROLE_ID || "1553691433674870845",
+  ticketPingRole: process.env.TICKET_PING_ROLE_ID || process.env.STAFF_ROLE_ID || "1418062158704414801",
   autoRole: process.env.AUTO_ROLE_ID || "1473103699722375168",
   wipPingRole: process.env.WIP_PING_ROLE_ID || "1473457354082357379",
   reactionRoleChannel: process.env.REACTION_ROLE_CHANNEL_ID || "1473457327012315206",
