@@ -1,5 +1,5 @@
 import { hasStaffRole, replySafe } from "./permissions.js";
-import { addUserToTicket, changeTicketStatus, claimTicket, closeTicket, createTicket, postTicketMenu, renameChannel, unclaimTicket } from "./tickets.js";
+import { addUserToTicket, changeTicketStatus, claimTicket, closeTicket, createTicket, handleTicketModal, postTicketMenu, renameChannel, unclaimTicket } from "./tickets.js";
 import { postReactionRoles, toggleWipPing } from "./reactionRoles.js";
 import { handleEmbedCommand, handleEmbedModalSubmit } from "./embedCreator.js";
 import { handleStaffCommand, staffCommandNames } from "./staff.js";
@@ -14,6 +14,7 @@ export function registerInteractionHandler(client) {
       if (interaction.isButton() && interaction.customId === "wip_ping_toggle") return toggleWipPing(interaction);
 
       if (interaction.isModalSubmit()) {
+        if (interaction.customId.startsWith("ticket_questions:")) return handleTicketModal(interaction, client);
         const handled = await handleEmbedModalSubmit(interaction);
         if (handled) return;
       }

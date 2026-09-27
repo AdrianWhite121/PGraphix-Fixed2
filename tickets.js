@@ -5,8 +5,11 @@ import {
   ButtonStyle,
   ChannelType,
   EmbedBuilder,
+  ModalBuilder,
   PermissionFlagsBits,
   StringSelectMenuBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   MessageFlags
 } from "discord.js";
 import { ids, ticketTypes } from "./config.js";
@@ -16,6 +19,11 @@ import { updateQueueList } from "./queue.js";
 
 const CLAIM_MARKER_REGEX = /\s*\[CLAIMED_BY:(\d+)\]\s*$/i;
 const NUMBERED_CHANNEL_REGEX = /^(.+?)-(\d+)(?:-(.+))?$/i;
+const ticketQuestions = {
+  livery: ["Lore or IRL based?", "Department Names for Product", "Quantity", "Details"],
+  eup: ["Lore or IRL based?", "Department Names for Product", "What Items", "Details"],
+  media: ["How Long for the Video", "What type of video"]
+};
 
 function sanitizeChannelPart(value = "") {
   return String(value)
@@ -403,6 +411,34 @@ export async function createTicket(interaction, client) {
   const config = ticketTypes[type];
   if (!config) return replySafe(interaction, { content: "Unknown ticket type.", ephemeral: true });
 
+  if (ticketQuestions[type]) {
+    const modal = new ModalBuilder().setCustomId(`ticket_questions:${type}`).setTitle(`${config.label} Questions`);
+    modal.addComponents(...ticketQuestions[type].map((question, index) =>
+      new ActionRowBuilder().addComponents(new TextInputBuilder()
+        .setCustomId(`answer_${index}`)
+        .setLabel(question)
+        .setStyle(question === "Details" ? TextInputStyle.Paragraph : TextInputStyle.Short)
+        .setMaxLength(1024)
+        .setRequired(true))));
+    return interaction.showModal(modal);
+  }
+
+  return openTicket(interaction, client, type);
+}
+
+export async function handleTicketModal(interaction, client) {
+  const type = interaction.customId.slice("ticket_questions:".length);
+  if (!ticketQuestions[type]) return replySafe(interaction, { content: "Unknown ticket type.", ephemeral: true });
+  const answers = ticketQuestions[type].map((question, index) => ({
+    name: question,
+    value: interaction.fields.getTextInputValue(`answer_${index}`)
+  }));
+  return openTicket(interaction, client, type, answers);
+}
+
+async function openTicket(interaction, client, type, answers = []) {
+  const config = ticketTypes[type];
+
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const guild = interaction.guild;
@@ -412,10 +448,10 @@ export async function createTicket(interaction, client) {
   const overwrites = [
     { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
     { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.EmbedLinks] },
-    { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+    { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MentionEveryone] }
   ];
 
-  for (const roleId of config.accessRoleIds) {
+  for (const roleId of new Set([...config.accessRoleIds, ids.ticketPingRole])) {
     overwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.EmbedLinks] });
   }
 
@@ -431,11 +467,18 @@ export async function createTicket(interaction, client) {
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
     .setTitle(`${config.emoji} ${config.label}`)
-    .setDescription(`${interaction.user}, thank you for opening a ticket. Please explain what you need and staff will assist you.`)
+    .setDescription(`${interaction.user}, thank you for opening a ticket. ${answers.length ? "Your answers are below; staff will assist you." : "Please explain what you need and staff will assist you."}`)
     .addFields({ name: "Opened By", value: `${interaction.user}`, inline: true }, { name: "Ticket Type", value: config.label, inline: true })
     .setTimestamp();
 
-  await channel.send({ content: `${interaction.user}`, embeds: [embed], components: [closeTicketRow()] });
+  if (answers.length) embed.addFields(answers);
+  const openingMessage = await channel.send({
+    content: `${interaction.user} <@&${ids.ticketPingRole}>`,
+    allowedMentions: { users: [interaction.user.id], roles: [ids.ticketPingRole] },
+    embeds: [embed],
+    components: [closeTicketRow()]
+  });
+  await openingMessage.pin();
   await replySafe(interaction, { content: `Created your ticket: ${channel}`, ephemeral: true });
   await updateQueueList(client);
 }
