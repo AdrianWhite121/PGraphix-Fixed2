@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { ensureQualityPanel } from "./qualityControl.js";
 import { ActivityType, Client, GatewayIntentBits, Partials } from "discord.js";
 import { TOKEN, intervals } from "./config.js";
 import { registerCommands } from "./registerCommands.js";
@@ -48,6 +49,7 @@ client.once("ready", async () => {
     activities: [{ name: "PGraphix Studio", type: ActivityType.Watching }]
   });
 
+  await ensureQualityPanel(client).catch(error => console.error("Failed to post quality control panel:", error));
   await updateQueueList(client);
   setInterval(() => updateQueueList(client), intervals.queueUpdateMs);
 });

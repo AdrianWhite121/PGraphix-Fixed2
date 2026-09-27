@@ -1,3 +1,4 @@
+import { handleQualityButton, handleQualitySubmit } from "./qualityControl.js";
 import { hasStaffRole, replySafe } from "./permissions.js";
 import { addUserToTicket, changeTicketStatus, claimTicket, closeTicket, createTicket, handleTicketModal, postTicketMenu, renameChannel, unclaimTicket } from "./tickets.js";
 import { postReactionRoles, toggleWipPing } from "./reactionRoles.js";
@@ -7,6 +8,8 @@ import { handleStaffCommand, staffCommandNames } from "./staff.js";
 export function registerInteractionHandler(client) {
   client.on("interactionCreate", async (interaction) => {
     try {
+      if (interaction.isButton() && interaction.customId.startsWith("qc_")) return await handleQualityButton(interaction, client);
+      if (interaction.isModalSubmit() && interaction.customId === "qc_submit") return await handleQualitySubmit(interaction, client);
       if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") return await createTicket(interaction, client);
 
       if (interaction.isButton() && interaction.customId === "ticket_close") return await closeTicket(interaction, client);

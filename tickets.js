@@ -13,7 +13,7 @@ import {
   MessageFlags
 } from "discord.js";
 import { ids, ticketTypes } from "./config.js";
-import { hasStaffRole, replySafe } from "./permissions.js";
+import { hasStaffRole, hasQualityRole, replySafe } from "./permissions.js";
 import { updateQueueList } from "./queue.js";
 
 
@@ -335,12 +335,17 @@ body{margin:0;background:#313338;color:#dbdee1;font-family:Arial,sans-serif}.hea
 
 export async function closeTicket(interaction, client) {
   const channel = interaction.channel;
-  if (!isTicketChannel(channel)) {
+  const isQuality = channel?.parentId === ids.qualityCategory && channel?.topic?.startsWith("[QC:");
+  if (!isTicketChannel(channel) && !isQuality) {
     return replySafe(interaction, { content: "This command can only be used inside a ticket channel.", ephemeral: true });
   }
 
+  if (isQuality && !hasQualityRole(interaction.member)) {
+    return replySafe(interaction, { content: "Only Quality Control Management can close this ticket.", ephemeral: true });
+  }
+
   const isOwner = channel.topic?.includes(`(${interaction.user.id})`);
-  if (!hasStaffRole(interaction.member) && !isOwner) {
+  if (!isQuality && !hasStaffRole(interaction.member) && !isOwner) {
     return replySafe(interaction, { content: "Only staff or the ticket opener can close this ticket.", ephemeral: true });
   }
 

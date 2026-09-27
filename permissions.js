@@ -9,3 +9,7 @@ export async function replySafe(interaction, options) {
   if (interaction.replied) return interaction.followUp(options);
   return interaction.reply(options);
 }
+
+export function hasQualityRole(member) {
+  return Boolean(member?.roles?.cache?.has(ids.qualityManagementRole));
+}

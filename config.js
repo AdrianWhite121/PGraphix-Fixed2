@@ -4,6 +4,9 @@ export const TOKEN = process.env.DISCORD_TOKEN || process.env.TOKEN;
 
 export const ids = {
   guild: process.env.GUILD_ID || "",
+  qualityPanelChannel: "1553697761604669510",
+  qualityCategory: "1541505501794148464",
+  qualityManagementRole: "1540838570649194556",
   welcomeChannel: process.env.WELCOME_CHANNEL_ID || "1511530891728392272",
   queueChannel: process.env.QUEUE_CHANNEL_ID || "",
   modLogChannel: process.env.MODLOG_CHANNEL_ID || "",

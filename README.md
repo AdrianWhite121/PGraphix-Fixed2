@@ -106,3 +106,18 @@ This version registers slash commands as **guild commands** so they should appea
 4. Watch the console for lines like `Registered 20 slash commands in guild ...`.
 
 If the console says it registered commands but Discord still does not show them, reinvite the bot with both scopes: `bot` and `applications.commands`.
+
+## Quality control tickets
+
+On startup, the bot posts or updates its QC panel in channel `1553697761604669510`.
+The bot needs View Channel, Read Message History, Send Messages, and Embed Links there.
+Staff (`STAFF_ROLE_ID`, default `1418062158704414801`) and QC Management may open requests.
+The questionnaire collects product type, product, and optional notes.
+Tickets open under category `1541505501794148464` with access for the opener and
+QC Management (`1540838570649194556`), which is pinged in the pinned opening message.
+Only QC Management may approve, deny, or close QC tickets, including through `/close`.
+Closing saves a transcript to the existing transcript channel before deleting the ticket.
+Numbering uses the highest existing QC ticket number plus one, including approved/denied
+tickets; approval and denial preserve the number. Reviewed requests cannot be decided again.
+The bot needs Manage Channels, Manage Messages, and permission to mention the QC role.
+Run one bot instance to avoid duplicate panels or simultaneous number allocation across replicas.
