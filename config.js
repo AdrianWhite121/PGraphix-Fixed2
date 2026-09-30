@@ -16,7 +16,8 @@ export const ids = {
   autoRole: process.env.AUTO_ROLE_ID || "1473103699722375168",
   wipPingRole: process.env.WIP_PING_ROLE_ID || "1473457354082357379",
   reactionRoleChannel: process.env.REACTION_ROLE_CHANNEL_ID || "1473457327012315206",
-  ticketTranscriptChannel: process.env.TICKET_TRANSCRIPT_CHANNEL_ID || "1473208365466390568"
+  ticketTranscriptChannel: process.env.TICKET_TRANSCRIPT_CHANNEL_ID || "1473208365466390568",
+  completedTicketCategory: process.env.COMPLETED_TICKET_CATEGORY_ID || "1554982185705152512"
 };
 
 export const intervals = {

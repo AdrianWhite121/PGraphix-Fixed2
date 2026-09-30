@@ -2,7 +2,7 @@ import { ActivityType, ChannelType, EmbedBuilder, PermissionsBitField } from "di
 import { ids, ticketTypes } from "./config.js";
 
 const ticketPatterns = Object.fromEntries(Object.keys(ticketTypes).map(type => [type, new RegExp(`^${type}-(\\d+)(?:-.+)?$`, "i")]));
-const ticketCategoryIds = new Set(Object.values(ticketTypes).map(type => type.categoryId));
+const ticketCategoryIds = new Set([...Object.values(ticketTypes).map(type => type.categoryId), ids.completedTicketCategory]);
 let updateInFlight = null;
 let queuedUpdate = false;
 let debounceTimer = null;

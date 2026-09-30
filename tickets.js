@@ -39,6 +39,18 @@ function getTicketTypeFromCategory(channel) {
   return Object.entries(ticketTypes).find(([, config]) => config.categoryId === channel?.parentId)?.[0] || null;
 }
 
+function getCompletedTicketType(channel) {
+  if (channel?.parentId !== ids.completedTicketCategory) return null;
+
+  const match = channel.name?.match(/^done-([a-z0-9_-]+)-(\d+)(?:-.+)?$/i);
+  const type = match?.[1]?.toLowerCase();
+  return type && ticketTypes[type] ? type : null;
+}
+
+function getTicketType(channel) {
+  return getTicketTypeFromCategory(channel) || getCompletedTicketType(channel);
+}
+
 function getClaimSuffix(channelName) {
   return channelName?.match(NUMBERED_CHANNEL_REGEX)?.[3] || null;
 }
@@ -155,7 +167,7 @@ export function closeTicketRow() {
 
 export function isTicketChannel(channel) {
   if (!channel || channel.type !== ChannelType.GuildText) return false;
-  return Object.values(ticketTypes).some(type => type.categoryId === channel.parentId);
+  return channel.parentId === ids.completedTicketCategory || Object.values(ticketTypes).some(type => type.categoryId === channel.parentId);
 }
 
 function escapeRegex(value = "") {
@@ -214,29 +226,64 @@ export async function changeTicketStatus(interaction, status) {
     return replySafe(interaction, { content: "Only staff or moderators can change ticket status.", ephemeral: true });
   }
 
-  const ticketType = getTicketTypeFromCategory(channel);
+  const ticketType = getTicketType(channel);
   if (!ticketType) {
-    return replySafe(interaction, { content: "I could not determine this ticket's active type.", ephemeral: true });
+    return replySafe(interaction, { content: "I could not determine this ticket's type.", ephemeral: true });
   }
 
-  const prefix = status === "active" ? ticketType : status;
+  const isCompleted = channel.parentId === ids.completedTicketCategory && channel.name.toLowerCase().startsWith(`done-${ticketType}-`);
+  if (status === "done" && isCompleted) {
+    return replySafe(interaction, { content: "This ticket is already marked complete.", ephemeral: true });
+  }
+
   const currentPrefix = channel.name.match(NUMBERED_CHANNEL_REGEX)?.[1]?.toLowerCase();
-  if (currentPrefix === prefix.toLowerCase()) {
-    return replySafe(interaction, { content: `This ticket is already marked ${status === "done" ? "complete" : status}.`, ephemeral: true });
+  if (status !== "done" && channel.parentId !== ids.completedTicketCategory) {
+    const prefix = status === "active" ? ticketType : status;
+    if (currentPrefix === prefix.toLowerCase()) {
+      return replySafe(interaction, { content: `This ticket is already marked ${status}.`, ephemeral: true });
+    }
   }
 
   await interaction.deferReply();
 
-  const suffix = getClaimSuffix(channel.name);
+  let destinationParentId = channel.parentId;
+  let prefix = status === "active" ? ticketType : status;
+  let suffix = getClaimSuffix(channel.name);
+
+  if (status === "done") {
+    destinationParentId = ids.completedTicketCategory;
+    prefix = `done-${ticketType}`;
+    suffix = null;
+
+    const completedCategory = await interaction.guild.channels.fetch(destinationParentId).catch(() => null);
+    if (!completedCategory || completedCategory.type !== ChannelType.GuildCategory) {
+      return replySafe(interaction, {
+        content: `The completed ticket category (${destinationParentId}) could not be found.`,
+        ephemeral: true
+      });
+    }
+  } else if (channel.parentId === ids.completedTicketCategory) {
+    destinationParentId = ticketTypes[ticketType].categoryId;
+    prefix = status === "active" ? ticketType : status;
+    suffix = null;
+  }
+
   const destination = await getNextNumberedChannel(
     interaction.guild,
-    channel.parentId,
+    destinationParentId,
     prefix,
     suffix,
     channel.id
   );
 
   await channel.setName(destination.name, `Ticket marked ${status} by ${interaction.user.tag}`);
+
+  if (channel.parentId !== destinationParentId) {
+    await channel.setParent(destinationParentId, {
+      lockPermissions: false,
+      reason: `Ticket marked ${status} by ${interaction.user.tag}`
+    });
+  }
 
   if (destination.highestChannel) {
     await channel.setPosition(destination.highestChannel.position + 1, {
@@ -249,7 +296,7 @@ export async function changeTicketStatus(interaction, status) {
   const embed = new EmbedBuilder()
     .setColor(colors[status])
     .setTitle(`Ticket Marked ${labels[status]}`)
-    .setDescription(`${interaction.user} changed this ticket to **${labels[status]}**.`)
+    .setDescription(`${interaction.user} changed this ticket to **${labels[status]}**.${status === "done" ? ` It was moved to <#${destinationParentId}> as **${destination.name}**.` : ""}`)
     .setTimestamp();
 
   return replySafe(interaction, { embeds: [embed] });

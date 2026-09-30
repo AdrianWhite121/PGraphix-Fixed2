@@ -93,6 +93,11 @@ Run these slash commands in Discord:
 
 Ticket categories and ticket-access roles are in `config.js` under `ticketTypes`.
 
+Completed tickets are moved automatically by `/complete` or `/done` into category
+`1554982185705152512` and renamed with a per-type sequence such as
+`done-livery-01` or `done-media-01`. Override the destination with the
+`COMPLETED_TICKET_CATEGORY_ID` environment variable if needed.
+
 Staff commands are limited to role `1418062158704414801` by default.
 
 
