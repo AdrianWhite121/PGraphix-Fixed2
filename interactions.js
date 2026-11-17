@@ -4,10 +4,15 @@ import { addUserToTicket, changeTicketStatus, claimTicket, closeTicket, createTi
 import { postReactionRoles, toggleWipPing } from "./reactionRoles.js";
 import { handleEmbedCommand, handleEmbedModalSubmit } from "./embedCreator.js";
 import { handleStaffCommand, staffCommandNames } from "./staff.js";
+import { agreeToTerms, postTerms } from "./terms.js";
 
 export function registerInteractionHandler(client) {
   client.on("interactionCreate", async (interaction) => {
     try {
+      if (interaction.isButton() && interaction.customId === "tos_agree") {
+        return await agreeToTerms(interaction);
+      }
+
       if (interaction.isButton() && interaction.customId.startsWith("qc_")) return await handleQualityButton(interaction, client);
       if (interaction.isModalSubmit() && interaction.customId === "qc_submit") return await handleQualitySubmit(interaction, client);
       if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") return await createTicket(interaction, client);
@@ -28,6 +33,7 @@ export function registerInteractionHandler(client) {
         return await interaction.reply({ content: "You do not have permission to use this command.", ephemeral: true });
       }
 
+      if (interaction.commandName === "tos") return await postTerms(interaction);
       if (interaction.commandName === "setup-tickets") return await postTicketMenu(interaction);
       if (interaction.commandName === "close") return await closeTicket(interaction, client);
       if (interaction.commandName === "claim") return await claimTicket(interaction);
