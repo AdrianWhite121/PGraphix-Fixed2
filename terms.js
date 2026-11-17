@@ -1,5 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
 
+const legalUrl = "https://www.thevinewoodproject.com/legal-information";
+
 const purchaseTerms = `**Purchases**
 Any commission purchases of any kind are bounded by the terms laid in this page and on all platforms and servers that are owned by or managed by The Vinewood Project, LLC. Purchases are paid through our payment platform, Stripe (Stripe, LLC).
 
@@ -9,7 +11,8 @@ export function postTerms(interaction) {
   const embed = new EmbedBuilder()
     .setColor(0x00008B)
     .setTitle("Terms of Service")
-    .setDescription(purchaseTerms)
+    .setURL(legalUrl)
+    .setDescription(`${purchaseTerms}\n\n[View full legal information](${legalUrl})`)
     .setFooter({ text: "PG Studios" });
 
   const row = new ActionRowBuilder().addComponents(
