@@ -1,7 +1,9 @@
 import { PermissionFlagsBits } from "discord.js";
 import { ids } from "./config.js";
+import { commissionCommand } from "./commission.js";
 
 export const commands = [
+  commissionCommand,
   { name: "tos", description: "Post the commission purchase terms for members to accept." },
   { name: "setup-tickets", description: "Post the commission ticket menu.", default_member_permissions: PermissionFlagsBits.ManageGuild.toString() },
   { name: "setup-reactionroles", description: "Post the WIP Ping reaction role button.", default_member_permissions: PermissionFlagsBits.ManageGuild.toString() },

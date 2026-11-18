@@ -5,6 +5,7 @@ import { postReactionRoles, toggleWipPing } from "./reactionRoles.js";
 import { handleEmbedCommand, handleEmbedModalSubmit } from "./embedCreator.js";
 import { handleStaffCommand, staffCommandNames } from "./staff.js";
 import { agreeToTerms, postTerms } from "./terms.js";
+import { COMMISSION_MODAL_PREFIX, handleCommissionCommand, handleCommissionModalSubmit } from "./commission.js";
 
 export function registerInteractionHandler(client) {
   client.on("interactionCreate", async (interaction) => {
@@ -22,6 +23,7 @@ export function registerInteractionHandler(client) {
       if (interaction.isButton() && interaction.customId === "wip_ping_toggle") return await toggleWipPing(interaction);
 
       if (interaction.isModalSubmit()) {
+        if (interaction.customId.startsWith(COMMISSION_MODAL_PREFIX)) return await handleCommissionModalSubmit(interaction);
         if (interaction.customId.startsWith("ticket_questions:")) return await handleTicketModal(interaction, client);
         const handled = await handleEmbedModalSubmit(interaction);
         if (handled) return;
@@ -34,6 +36,7 @@ export function registerInteractionHandler(client) {
       }
 
       if (interaction.commandName === "tos") return await postTerms(interaction);
+      if (interaction.commandName === "commission") return await handleCommissionCommand(interaction);
       if (interaction.commandName === "setup-tickets") return await postTicketMenu(interaction);
       if (interaction.commandName === "close") return await closeTicket(interaction, client);
       if (interaction.commandName === "claim") return await claimTicket(interaction);
